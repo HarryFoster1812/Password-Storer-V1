@@ -7,6 +7,8 @@ import json
 from tkinter import *
 from tkinter import messagebox
 from tkinter import scrolledtext
+import random
+import string
 
 ############ Global variables ############
 
@@ -18,6 +20,7 @@ sites = []
 
 ############ Files ############
 
+icon = r"icon.ico"
 acc_username_arry_dir = 'Account details\\accountusernames.json'
 acc_password_arry_dir = 'Account details\\accountpasswords.json'
 accountfiles = [acc_username_arry_dir, acc_password_arry_dir]
@@ -25,32 +28,36 @@ accountfiles = [acc_username_arry_dir, acc_password_arry_dir]
 ############ OOP BABY ############
 
 class Encryptor():
-    def gen_key(self):
+    @staticmethod
+    def gen_key():
         key = Fernet.generate_key()
         return key
 
-    def write_key(self, key):
+    @staticmethod
+    def write_key(key):
         global username
         with open(f'Data\\{username}\\my_key.key', 'wb') as myfile:
             myfile.write(key)
 
-    def load_key(self):
+    @staticmethod
+    def load_key():
         global username
         with open(f'Data\\{username}\\my_key.key', 'rb') as myfile:
             key = myfile.read()
             return key
 
-    def encrypt(self, key, message):
+    @staticmethod
+    def encrypt(key, message):
         f = Fernet(key)
         encrypted = f.encrypt(bytes(message, encoding = 'utf-8'))
         return encrypted.decode('utf-8')
 
-    def decrypt(self, key, message):
+    @staticmethod
+    def decrypt(key, message):
         f = Fernet(key)
         decrypted = f.decrypt(bytes(message, encoding = 'utf-8'))
         return decrypted.decode('utf-8')
 
-encryptor = Encryptor() # Creating a global instance
 
 ############ Back end (nerd stuff) ############
 def loginfunc(userusername, root, userpass):
@@ -81,12 +88,11 @@ def uservalid():
 
 def createdir():
     global username, key
-    newdir = f"Data\\{username}"
-    os.mkdir(newdir)
+    os.mkdir(f"Data\\{username}")
     write()
-    key = encryptor.gen_key()
-    encryptor.write_key(key)
-    uservalid()
+    key = Encryptor.gen_key()
+    Encryptor.write_key(key)
+    menu()
 
 def write():
     files = [f'Data\\{username}\\pass.json', f'Data\\{username}\\email.json', f'Data\\{username}\\username.json', f'Data\\{username}\\sites.json']
@@ -153,21 +159,54 @@ def setoptionedit():
     global option
     option = 'edit'
 
+def setoptiongen():
+    global option
+    option = 'gen'
+
 def add(info, widgets):
     global sites, usernames, emails, decryptedpass
+    option = True
     for i in range(len(info)):
-        if i == 0:
-            sites.append(info[0])
-        elif i == 1:
-            usernames.append(info[1])
-        elif i == 2:
-            emails.append(info[2])
-        else:
-            decryptedpass.append(info[3])
+        if (info[i] == "") or (info[i] == " "):
+            if i == 0:
+                option = messagebox.showerror('ERROR',f'you have left the "Site" field blank \nPlease input something."')
+                if option:
+                    option = False
+                    break
 
-    for widget in widgets:
-        widget.delete(0, 'end')
-    obtain_output()
+            if i == 1:
+                option = messagebox.askyesno('ERROR',f'you have left the "Username" field blank \nAre you sure you want to continue?"')
+                break
+
+            if i == 2:
+                option = messagebox.askyesno('ERROR',f'you have left the "Email" field blank \nAre you sure you want to continue?"')
+                if option:
+                    info[i] = "n/a"
+                    break
+
+            if i == 3:
+                option = messagebox.askyesno('ERROR',f'you have left the "Password" field blank \nAre you sure you want to continue?"')
+                if option:
+                    info[i] = "n/a"
+                    break
+    
+    if option:
+        for i in range(len(info)):
+            if i == 0:
+                sites.append(info[0])
+            elif i == 1:
+                usernames.append(info[1])
+            elif i == 2:
+                emails.append(info[2])
+            else:
+                decryptedpass.append(info[3])
+
+        for widget in widgets:
+            widget.delete(0, 'end')
+            obtain_output()
+        
+    else:
+        pass
 
 def remove(entrysite):
     try:
@@ -198,22 +237,44 @@ def get_edit_index(site):
     except:
         messagebox.showerror('ERROR',"Couldn't find site")
 
+def generatepass():
+    all = string.ascii_lowercase + string.ascii_uppercase + string.digits + string.punctuation
+    return ("".join(random.sample(all, 16)))
+    
+def gen(label):
+    global genpass
+    genpass = generatepass()
+    label.config(text = genpass)
+
+def copy():
+    global genpass
+    root.clipboard_clear()
+    root.clipboard_append(genpass)
+
 def on_close(root):
     global key
-    key = encryptor.gen_key()
-    encryptor.write_key(key)
+    key = Encryptor.gen_key()
+    Encryptor.write_key(key)
     encryptedpass.clear()
     for item in decryptedpass:
-        encrypted_item = encryptor.encrypt(key, item)
+        encrypted_item = Encryptor.encrypt(key, item)
         encryptedpass.append(encrypted_item)
     write()
     root.destroy()
+    
+    decryptedpass.clear()
+    emails.clear()
+    usernames.clear()
+    sites.clear()
+    key = None
+    
+    login()
 
 def obtain_key():
     global key
-    key = encryptor.load_key()
+    key = Encryptor.load_key()
     for item in encryptedpass:
-        decrypted_item = encryptor.decrypt(key, item)
+        decrypted_item = Encryptor.decrypt(key, item)
         decryptedpass.append(decrypted_item)
 
 def hashpass(password):
@@ -289,7 +350,7 @@ def remove_add():
         site.grid(row=1, column=2)
         submit = Button(insidenewentity, text='Remove', font=('Courier', 14), command = lambda: remove(site.get())).grid(columnspan=4, row=5,pady=6)
 
-    else:
+    elif option == 'edit':
         editoption = StringVar(insidenewentity)
         var = IntVar()
         choices = {'Site', 'Username', 'Email', 'Password'}
@@ -308,6 +369,14 @@ def remove_add():
         editframe.grid(row=6, columnspan=4)
         Button(insidenewentity, text='Submit', font=('Courier', 14), command = lambda: editselection(editoption.get())).grid(columnspan=4, row=5,pady=4)
 
+    else:
+        entity_label = Label(insidenewentity, text='Generate Password', font=('Courier', 18)).grid(row=0,columnspan=4)
+        site_label = Label(insidenewentity, text="Password: ", font=('Courier', 14)).grid(row=1, column=1)
+        Randompass = Label(insidenewentity, font=('Courier', 14), background = "white")
+        Randompass.grid(row=1, column=2)
+        Copy = Button(insidenewentity, text='Copy', font=('Courier', 14), command = copy).grid(row=1, column=3)
+        submit = Button(insidenewentity, text='Generate', font=('Courier', 14), command = lambda: gen(Randompass)).grid(columnspan=4, row=5,pady=6)
+
 def editselection(choice):
     global insidenewentity, editframe
     editframe.destroy()
@@ -323,6 +392,7 @@ def signup(root):
     showit = True
     loginframe.destroy()
     loginframe = Frame(root)
+    root.iconbitmap(icon)
     loginframe.pack()
     Label(loginframe, text='Signup', font=('Courier', 18)).grid(columnspan = 4, row=0)
     Label(loginframe, text="Username:").grid(row=1, column=1)
@@ -339,6 +409,7 @@ def login():
     showit = True
     root = Tk()
     loginframe = Frame(root)
+    root.iconbitmap(icon)
     loginframe.pack()
     Label(loginframe, text='Login', font=('Courier', 18)).grid(columnspan = 4, row=0)
     usersusername = Entry(loginframe)
@@ -364,6 +435,7 @@ def menu():
     option = 'new'
     root = Tk()
     root.title("Password Storer")
+    root.iconbitmap(icon)
 
     buttonframe = Frame(root)
     buttonframe.pack()
@@ -373,6 +445,8 @@ def menu():
     remove.grid(row = 0, column = 2)
     editbutton = Button(buttonframe, text = 'Edit', font = ('Courier', 14), command = lambda: (setoptionedit(), remove_add()))
     editbutton.grid(row = 0, column = 3)
+    generatebutton = Button(buttonframe, text = "Generate", font = ('Courier', 14), command = lambda: (setoptiongen(), remove_add()))
+    generatebutton.grid(row = 0, column = 4)
     new_entityframe = Frame(root)
     new_entityframe.pack()
     insidenewentity = Frame(new_entityframe)
