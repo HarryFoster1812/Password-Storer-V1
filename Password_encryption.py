@@ -17,6 +17,7 @@ decryptedpass = []
 emails = []
 usernames = []
 sites = []
+startup = True
 
 ############ Files ############
 
@@ -62,15 +63,23 @@ class Encryptor():
 ############ Back end (nerd stuff) ############
 def loginfunc(userusername, root, userpass):
     global userinput, account_usernames, account_passwords
-    userinput = userusername
-    if userusername in account_usernames:
-        index = account_usernames.index(userusername)
-        verifypass = account_passwords[index]
-        validate(verifypass, root, userpass)
+    if userusername == '' or userpass == '':
+        messagebox.showerror('Invalid entry','You have not entered a username or password!')
+
+    else:   
+        userinput = userusername
+        if userusername in account_usernames:
+            index = account_usernames.index(userusername)
+            verifypass = account_passwords[index]
+            validate(verifypass, root, userpass)
+        else:
+            messagebox.showerror('Invalid entry','Account does not exist!')
 
 def account_signup(username1, root, password):
     global account_usernames, account_passwords, username
-    if username1 in account_usernames:
+    if username1 == '' or password =='':
+        messagebox.showerror('Invalid entry','You have not entered a username or password!')
+    elif username1 in account_usernames:
         messagebox.showwarning('Invalid username','The username you have entered is already taken!')
     else:
         username = username1
@@ -170,12 +179,12 @@ def add(info, widgets):
         if (info[i] == "") or (info[i] == " "):
             if i == 0:
                 option = messagebox.showerror('ERROR',f'you have left the "Site" field blank \nPlease input something."')
-                if option:
-                    option = False
-                    break
+                break
 
             if i == 1:
                 option = messagebox.askyesno('ERROR',f'you have left the "Username" field blank \nAre you sure you want to continue?"')
+                if option:
+                    info[i] = "n/a"
                 break
 
             if i == 2:
@@ -391,8 +400,8 @@ def signup(root):
     global loginframe, showit
     showit = True
     loginframe.destroy()
-    loginframe = Frame(root)
-    root.iconbitmap(icon)
+    loginframe = Frame(loginroot)
+    loginroot.iconbitmap(icon)
     loginframe.pack()
     Label(loginframe, text='Signup', font=('Courier', 18)).grid(columnspan = 4, row=0)
     Label(loginframe, text="Username:").grid(row=1, column=1)
@@ -402,14 +411,19 @@ def signup(root):
     accountpassword = Entry(loginframe, show="*")
     accountpassword.grid(row=2, column=2)
     Button(loginframe, text="V", command = lambda: editentry(accountpassword)).grid(row = 2 , column = 3)
-    Button(loginframe, text="Sign Up", command = lambda: account_signup(accountusername.get(), root, accountpassword.get())).grid(columnspan = 4, row=3)
+    buttonframe = Frame(loginframe)
+    buttonframe.grid(columnspan = 4, row = 3)
+    Button(buttonframe, text="Sign Up", command = lambda: account_signup(accountusername.get(), root, accountpassword.get())).grid(column = 3, row=0)
+    Button(buttonframe, text="Back", command = lambda: (loginframe.destroy(), login())).grid(column=2, row=0)
 
 def login():
-    global showit, loginframe
+    global showit, loginframe, startup, loginroot
     showit = True
-    root = Tk()
-    loginframe = Frame(root)
-    root.iconbitmap(icon)
+    if startup:
+        loginroot = Tk()
+    startup = False
+    loginframe = Frame(loginroot)
+    loginroot.iconbitmap(icon)
     loginframe.pack()
     Label(loginframe, text='Login', font=('Courier', 18)).grid(columnspan = 4, row=0)
     usersusername = Entry(loginframe)
@@ -417,9 +431,9 @@ def login():
     userpass = Entry(loginframe, show="*")
     userpass.grid(columnspan = 2, row=2)
     Button(loginframe, text="V", command = lambda: editentry(userpass)).grid(row = 2 , column = 3)
-    Button(loginframe, text="Submit", command = lambda: loginfunc(usersusername.get(), root, userpass.get())).grid(columnspan = 4, row=3)
-    Button(loginframe, text="Sign up", command = lambda: signup(root)).grid(columnspan = 4, row=4, pady=6)
-    root.mainloop()
+    Button(loginframe, text="Submit", command = lambda: loginfunc(usersusername.get(), loginroot, userpass.get())).grid(columnspan = 4, row=3)
+    Button(loginframe, text="Sign up", command = lambda: signup(loginroot)).grid(columnspan = 4, row=4, pady=6)
+    loginroot.mainloop()
 
 def editentry(userpass):
     global showit
